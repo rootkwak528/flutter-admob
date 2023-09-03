@@ -13,16 +13,49 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
+
   BannerAd? _bannerAd;
   InterstitialAd? _interstitialAd;
+  RewardedAd? _rewardedAd;
 
   void _incrementCounter() {
     setState(() {
       _counter++;
     });
 
-    if (_counter % 5 == 0 && _interstitialAd == null) {
+    if (_counter % 10 == 5 && _interstitialAd == null) {
       _loadInterstitialAd();
+    }
+
+    if (_counter % 10 == 0) {
+      _rewardedAd?.show(
+        onUserEarnedReward: (ad, reward) {
+          _counter += 100;
+        },
+      );
+
+      // showDialog(
+      //   context: context,
+      //   builder: (context) {
+      //     return AlertDialog(
+      //       title: const Text('Need extra counter?'),
+      //       actions: [
+      //         TextButton(
+      //           child: const Text('cancel'),
+      //           onPressed: () {
+      //             Navigator.pop(context);
+      //           },
+      //         ),
+      //         TextButton(
+      //           child: const Text('Ok'),
+      //           onPressed: () {
+      //             Navigator.pop(context);
+      //           },
+      //         ),
+      //       ],
+      //     );
+      //   },
+      // );
     }
   }
 
@@ -71,16 +104,44 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  void _loadRewardedAd() {
+    RewardedAd.load(
+      adUnitId: AdHelper.rewardedAdUnitId,
+      request: const AdRequest(),
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
+        onAdLoaded: (ad) {
+          ad.fullScreenContentCallback =
+              FullScreenContentCallback(onAdDismissedFullScreenContent: (ad) {
+            setState(() {
+              ad.dispose();
+              _rewardedAd = null;
+            });
+            _loadRewardedAd();
+          });
+
+          setState(() {
+            _rewardedAd = ad;
+          });
+        },
+        onAdFailedToLoad: (err) {
+          print('Failed to load a rewarded ad: ${err.message}');
+        },
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
     _loadBannerAd();
+    _loadRewardedAd();
   }
 
   @override
   void dispose() {
     _bannerAd?.dispose();
     _interstitialAd?.dispose();
+    _rewardedAd?.dispose();
     super.dispose();
   }
 
